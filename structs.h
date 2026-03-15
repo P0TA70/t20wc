@@ -4,9 +4,9 @@
 #include <pthread.h>
 
 typedef enum BallOutcome {
-  LEGAL_BALL,
-  WIDE,
-  NO_BALL,
+  LEGAL_BALL, // 0 
+  WIDE, // 1
+  NO_BALL, // 2
 } BallOutcome;
 
 typedef enum WicketType {
@@ -23,7 +23,7 @@ typedef enum BoundaryType {
   SIX,
 } BoundaryType;
 
-typedef struct StrokeOutcome {
+typedef struct StrokeOutcome { //TODO: USE THIS
   WicketType wicket_type;
   int runs;
   BoundaryType boundary_type;
@@ -35,7 +35,7 @@ typedef struct BowlingScore
   int runs_given;
   int wickets_taken; 
 } BowlingScore;
-typedef struct BattingScore
+typedef struct BattingScore //TODO: USE THIS
 {
   int balls_received;
   int runs_taken;

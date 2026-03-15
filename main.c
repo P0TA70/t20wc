@@ -9,31 +9,36 @@
 // globals h externs
 sem_t crease;
 sem_t active_end, passive_end;
-sem_t is_bowling;
-FILE *ballsInOver; 
 
+int balls_in_over = 0;
+int over_count = 0;
 
+pthread_cond_t BALL_HIT;
 
-BallOutcome ball_outcome;
-pthread_mutex_t pitch_mut;
-pthread_cond_t BALL_THROW;
+// score for a team
+int score = 0, wickets = 0;
+
+// order of bowlers
+pthread_t bowlers[20];
+BowlingScore bowler_stats[20];
+
+BallOutcome balls[BALL_BUF_SIZE];
+
+int new_ball, curr_ball, num_ball;
+pthread_mutex_t pitch;
+pthread_cond_t c_ba, c_bo;
+int number_balls = 0;
 
 Team *construct_team(int data /*dummy*/);
 void umpire(Team *ba, Team *bo);
 
-void *bowler(void *param);
-void bowling();
-void fielding();
+void *bowling(void *param);
+void *fielding(void *param);
 void *batting(void *param);
 
 int main() {
   srand(time(NULL));
-  ballsInOver = tmpfile();
-  if (ballsInOver == NULL) {
-    perror("Failed to create temporary file");
-    return 1;
-  }  
-  
+
   printf("here i am");
   // some input data is converted to 2 teams
   Team *a = construct_team(0);
@@ -51,47 +56,108 @@ int main() {
 
 void *batting(void *param) {
   sem_wait(&crease);
-  sem_wait(&passive_end);
-  sem_wait(&active_end);
-  sem_post(&passive_end);
+  while (1) {
+    sem_wait(&passive_end);
+    sem_wait(&active_end);
+    sem_post(&passive_end);
 
-  // critical section
+    // critical section
+    while (1) {
+      pthread_mutex_lock(&pitch);
+      if (num_ball < 0) {
+        printf("crash");
+        fflush(stdout);
+        exit(1);
+      } /* underflow */
+      while (num_ball == 0) /* block if buffer empty */
+        pthread_cond_wait(&c_ba, &pitch);
+      /* if executing here, buffer not empty so remove element */
+      printf("%d #%lx %d \n", number_balls, pthread_self(), balls[curr_ball]);
+      fflush(stdout);
 
-  sem_post(&active_end);
+      // deciding how batsman hit the ball
+      if (balls[curr_ball] == LEGAL_BALL) {
+        balls_in_over++;
+        // fair ball
+        int notOut = rand() % 15;
+        if (notOut == 0) {
+          WicketType typeOfWicket = rand() % 7;
+          // TODO: add more cases here
+          if (typeOfWicket == CAUGHT) {
+            pthread_cond_broadcast(&BALL_HIT);
+          }
+          bowler_stats[over_count].balls_delivered++;
+          bowler_stats[over_count].wickets_taken++;
+          sem_post(&crease);
+          sem_post(&active_end);
+          pthread_exit(NULL);
+        } else {
+          int boundary = rand() % 9;
+          if (boundary < 2) {
+            BoundaryType bt = rand() % 2;
+            if (bt == FOUR) {
+              score += 4;
+            } else {
+              score += 6;
+            }
+          } else {
+            int score_increase = rand() % 4;
+          }
+        }
+      } else if (balls[curr_ball] == WIDE) {
+        // wide ball
+      } else {
+        // no ball
+      }
 
+      if (balls_in_over == 6) {
+        balls_in_over = 0;
+        over_count++;
+      }
+      curr_ball = (curr_ball + 1) % BALL_BUF_SIZE;
+      num_ball--;
+      number_balls++;
+      pthread_mutex_unlock(&pitch);
+      pthread_cond_signal(&c_bo);
+    }
+    sem_post(&active_end);
+  }
+  sem_post(&crease);
   return NULL;
 }
 
-void bowling() {
-  srand(time(0));
-  for (int i=0;i<6;i++) {
-    int typeOfBall = rand()%3;
-    BallOutcome ball = typeOfBall;
-    fprintf(ballsInOver, "%d", ball);  
-    fprintf(ballsInOver,"\n");
-  }
-  rewind(ballsInOver); 
-}
+void *bowling(void *param) {
+  Team *team = (Team *)param;
 
-void fielding() {
-  return;
-}
+  // create a bowler list for 20 overs
+  // TODO: select bowlers
 
-void *bowler(void *param) {
-  while (1) { //TODO: ADD A CONDITION 
-    int check = sem_trywait(&is_bowling);
-    if (check == 0) {
-      bowling();
-    } else if (check == -1) {
-      fielding();
-    } else {
-      printf("Error! Exiting");
-      exit(1);
+  for (int over = 0; over < 20; over++) {
+    // every over, the probabilities are reloaded
+    for (int i = 0; i < 6; i++) {
+      int typeOfBall = rand() % 3;
+      BallOutcome ball = typeOfBall;
+      if (ball == NO_BALL || ball == WIDE)
+        i--; // TODO:TUX IN DANGER
+      pthread_mutex_lock(&pitch);
+      if (num_ball > BALL_BUF_SIZE) {
+        printf("crashing");
+        fflush(stdout);
+        exit(1);
+      }
+      while (num_ball == BALL_BUF_SIZE)
+        pthread_cond_wait(&c_bo, &pitch);
+      balls[new_ball] = ball;
+      new_ball = (new_ball + 1) % BALL_BUF_SIZE;
+      num_ball++;
+      pthread_mutex_unlock(&pitch);
+      pthread_cond_signal(&c_ba);
     }
   }
-
   return NULL;
 }
+
+void *fielding(void *param) { return NULL; }
 
 void umpire(Team *ba, Team *bo) {
   // initialise variables which will allow proper sequencing of the batsmen
@@ -100,7 +166,18 @@ void umpire(Team *ba, Team *bo) {
   sem_init(&crease, 0, 2);
   sem_init(&active_end, 0, 1);
   sem_init(&passive_end, 0, 1);
-  sem_init(&is_bowling, 0, 1);
+  pthread_mutex_init(&pitch, NULL);
+  pthread_cond_init(&c_ba, NULL);
+  pthread_cond_init(&c_bo, NULL);
+  pthread_t bowler;
+
+  pthread_cond_init(&BALL_HIT, NULL);
+  score = 0;
+
+  if (pthread_create(&bowler, NULL, bowling, (void *)bo)) {
+    printf("Bowler thread couldnt be created");
+    exit(1);
+  }
 
   for (int i = 0; i < 11; i++) {
     if (pthread_create(&((*ba).players[i].id), NULL, batting, NULL)) {
@@ -110,8 +187,8 @@ void umpire(Team *ba, Team *bo) {
   }
 
   for (int i = 0; i < 11; i++) {
-    if (pthread_create(&(*bo).players[i].id, NULL, bowler, NULL)) {
-      printf("Bowler thread couldnt be created%d", i);
+    if (pthread_create(&(*bo).players[i].id, NULL, fielding, NULL)) {
+      printf("Fielder thread couldnt be created%d", i);
       exit(1);
     }
   }
@@ -123,11 +200,14 @@ void umpire(Team *ba, Team *bo) {
   for (int i = 0; i < 11; i++) {
     pthread_join(bo->players[i].id, NULL);
   }
+  pthread_join(bowler, NULL);
 
+  pthread_mutex_destroy(&pitch);
+  pthread_cond_destroy(&c_bo);
+  pthread_cond_destroy(&c_ba);
   sem_destroy(&crease);
   sem_destroy(&active_end);
   sem_destroy(&passive_end);
-  sem_destroy(&is_bowling);
 }
 
 Team *construct_team(int data /*dummy, team bool for now*/) {
