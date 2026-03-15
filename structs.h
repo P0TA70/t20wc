@@ -3,11 +3,11 @@
 
 #include <pthread.h>
 
-enum BallOutcome {
+typedef enum BallOutcome {
   LEGAL_BALL,
   WIDE,
   NO_BALL,
-};
+} BallOutcome;
 
 typedef enum WicketType {
   BOWLED,
