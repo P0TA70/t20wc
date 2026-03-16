@@ -5,11 +5,12 @@
 #include <pthread.h>
 #include <stdio.h>
 #include "structs.h"
+#include "fifo_sem.h"
 
 #define BALL_BUF_SIZE 42 //6*7
 
 //zhe ground
-extern sem_t crease;
+extern fifo_sem crease;
 extern sem_t active_end, passive_end;
 
 //match stats
