@@ -17,6 +17,7 @@ typedef enum WicketType {
   STUMPED, //might remove
   HIT_WICKET, //might remove
   OBSTRUCTING_FIELD, //might remove
+  HIT_TWICE, // might remove
 } WicketType;
 typedef enum BoundaryType {
   FOUR,
