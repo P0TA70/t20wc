@@ -50,4 +50,10 @@ extern pthread_t bowlers[20];
 extern int new_batsman;
 extern pthread_mutex_t nb_mutex;
 
+// D BUGGER added flaag so fielders may die!
+extern int match_over;
+
+extern int number_balls;
+extern BowlingScore bowler_stats[20];
+
 #endif
