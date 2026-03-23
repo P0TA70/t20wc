@@ -1,14 +1,14 @@
 #include "globals.h"
 #include <stdlib.h>
 
-
 void *batting(void *param) {
   fifo_sem_wait(&crease);
 
-  int got_out = 0; // adding ts cuz when previously a batsman got out, crease was being posted twice
-                   // extra post was allowing 3rd batsman to come!
+  int got_out =
+      0; // adding ts cuz when previously a batsman got out, crease was being
+         // posted twice extra post was allowing 3rd batsman to come!
 
-  while (1) {
+  while (1) { //this loop is so that the 2 current batsmen rotate
     pthread_mutex_lock(&nb_mutex);
     if (!new_batsman) {
       pthread_mutex_unlock(&nb_mutex);
@@ -16,14 +16,15 @@ void *batting(void *param) {
       sem_wait(&active_end);
       sem_post(&passive_end);
     } else {
-      new_batsman=0;
+      new_batsman = 0;
       pthread_mutex_unlock(&nb_mutex);
     }
 
     // critical section
-    int notOut = 1; // wide and no ball case was leaving ts uninitialized, so i added it!
+    int notOut =
+        1; // wide and no ball case was leaving ts uninitialized, so i added it!
     int over_end = 0; // to check if the current over has ended!
-    while (1) {
+    while (1) { //this loop is for the 1 active batsman
       pthread_mutex_lock(&pitch);
       if (num_ball < 0) {
         printf("crash");
@@ -36,57 +37,51 @@ void *batting(void *param) {
       printf("%d #%lx %d \n", number_balls, pthread_self(), balls[curr_ball]);
       fflush(stdout);
 
+      BallOutcome ball = balls[curr_ball];
+
+      curr_ball = (curr_ball + 1) % BALL_BUF_SIZE; // !!!
+      num_ball--;
+      number_balls++;
+      pthread_mutex_unlock(&pitch); // we were not releasing this earlier!
+      pthread_cond_signal(&c_bo);
+
       // deciding how batsman hit the ball
-      if (balls[curr_ball] == LEGAL_BALL) {
+      if (ball == LEGAL_BALL) {
         balls_in_over++;
         // fair ball
         notOut = rand() % 15;
         if (notOut == 0) {
           WicketType typeOfWicket = rand() % 7;
           // TODO: add more cases here
-          if (typeOfWicket==CAUGHT) {
+          if (typeOfWicket == CAUGHT || typeOfWicket == RUNOUT) {
+            if (typeOfWicket == RUNOUT) {
+              int runs = rand() % 4;
+              score += runs;
+            }
+            if (typeOfWicket == CAUGHT) {
+              bowler_stats[over_count].wickets_taken++;
+            }
             pthread_mutex_lock(&fielder_mutex);
-            ball_in_air=1;
-            wicket_type=typeOfWicket; 
+            ball_in_air = 1;
+            wicket_type = typeOfWicket;
             pthread_mutex_unlock(&fielder_mutex);
             pthread_cond_signal(&BALL_HIT);
-            
-            pthread_mutex_lock(&fielder_done_mutex);
-            while (ball_in_air) {
-              pthread_cond_wait(&fielder_done,&fielder_done_mutex);
-            } 
-            pthread_mutex_unlock(&fielder_done_mutex);
-          } else if (typeOfWicket==RUNOUT) {
-            int runs = rand()%4;
-            score+=runs;
 
-            pthread_mutex_lock(&fielder_mutex);
-            ball_in_air=1;
-            wicket_type=typeOfWicket; 
-            pthread_mutex_unlock(&fielder_mutex);
-            pthread_cond_signal(&BALL_HIT);
-            
             pthread_mutex_lock(&fielder_done_mutex);
             while (ball_in_air) {
-              pthread_cond_wait(&fielder_done,&fielder_done_mutex);
-            } 
+              pthread_cond_wait(&fielder_done, &fielder_done_mutex);
+            }
             pthread_mutex_unlock(&fielder_done_mutex);
           } 
-          
-          bowler_stats[over_count].balls_delivered++;
-          bowler_stats[over_count].wickets_taken++;
 
-          curr_ball = (curr_ball + 1) % BALL_BUF_SIZE; // !!!
-          num_ball--;                                    
-          number_balls++;                                
-          pthread_mutex_unlock(&pitch);  // we were not releasing this earlier!  
-          pthread_cond_signal(&c_bo);                    
+          bowler_stats[over_count].balls_delivered++;
 
           pthread_mutex_lock(&nb_mutex);
           new_batsman = 1;
           pthread_mutex_unlock(&nb_mutex);
 
-          got_out = 1; // this is to prevent double post of that crease semaphore!
+          got_out =
+              1; // this is to prevent double post of that crease semaphore!
           fifo_sem_post(&crease);
           if (!new_batsman) {
             sem_post(&active_end);
@@ -105,87 +100,71 @@ void *batting(void *param) {
             }
           } else {
             int score_increase = rand() % 4;
-            score+=score_increase;
-            if (score_increase%2!=0) {
-              curr_ball = (curr_ball + 1) % BALL_BUF_SIZE; // forgor to consume the ball here too!
-              num_ball--;                                    
-              number_balls++;                                
-              pthread_mutex_unlock(&pitch);                  // we were not releasing this earlier!
-              pthread_cond_signal(&c_bo);                    
-              break; 
+            score += score_increase;
+            if (score_increase % 2 != 0) {
+              break;
             }
           }
         }
-      } else if (balls[curr_ball] == WIDE) {
+      } else if (ball == WIDE) {
         // wide ball
-        score+=1;
-        int not_overthrow = rand()%10;
+        score += 1;
+        int not_overthrow = rand() % 10;
         if (!not_overthrow) {
-          // overthrow case here 
-          int notRunOut = rand()%4;
-          if (notRunOut==0) {
-            int runs = rand()%4;
-            score+=runs;
+          // overthrow case here
+          int notRunOut = rand() % 4;
+          if (notRunOut == 0) {
+            int runs = rand() % 4;
+            score += runs;
 
             pthread_mutex_lock(&fielder_mutex);
-            ball_in_air=1;
-            wicket_type=RUNOUT; 
+            ball_in_air = 1;
+            wicket_type = RUNOUT;
             pthread_mutex_unlock(&fielder_mutex);
             pthread_cond_signal(&BALL_HIT);
-            
+
             pthread_mutex_lock(&fielder_done_mutex);
             while (ball_in_air) {
-              pthread_cond_wait(&fielder_done,&fielder_done_mutex);
-            } 
+              pthread_cond_wait(&fielder_done, &fielder_done_mutex);
+            }
             pthread_mutex_unlock(&fielder_done_mutex);
           } else {
-            int runs = rand()%5;
-            score+=runs;
-            if (runs%2!=0) {
-              curr_ball = (curr_ball + 1) % BALL_BUF_SIZE; // same thing!
-              num_ball--;                                     
-              number_balls++;                                
-              pthread_mutex_unlock(&pitch);                  
-              pthread_cond_signal(&c_bo);                    
-              break;
-            }  
+            int runs = rand() % 5;
+            score += runs;
+            if (runs % 2 != 0) {
+             break;
+            }
           }
-        } 
+        }
       } else {
         // no ball
         score++;
-        int hit = rand()%2; 
+        int hit = rand() % 2;
         if (hit) {
-          int notOut = rand()%2; // out will be only through run out 
-          if (notOut==0) {
-            int runs = rand()%4;
-            score+=runs;
-            // make wicket type as run out and just do what was done for fielder 
+          int notOut = rand() % 2; // out will be only through run out
+          if (notOut == 0) {
+            int runs = rand() % 4;
+            score += runs;
+            // make wicket type as run out and just do what was done for fielder
           } else {
-            int notBoundary = rand()%6;
-            if (notBoundary==0) {
-              BoundaryType what_boundary = rand()%2;
-              if (what_boundary==FOUR) {
-                score+=4;
+            int notBoundary = rand() % 6;
+            if (notBoundary == 0) {
+              BoundaryType what_boundary = rand() % 2;
+              if (what_boundary == FOUR) {
+                score += 4;
               } else {
-                score+=6;
+                score += 6;
               }
             } else {
-              int runs = rand()%4;
-              score+=runs;
-              if (runs%2!=0) {
-                curr_ball = (curr_ball + 1) % BALL_BUF_SIZE; // same thing, consume the ball in no ball case, otherwise the 
-                                                             // same ball was being read in this case!
-                num_ball--;                                    
-                number_balls++;                                
-                pthread_mutex_unlock(&pitch);                  // you know at this point
-                pthread_cond_signal(&c_bo);                    // im tired!
-                break;
+              int runs = rand() % 4;
+              score += runs;
+              if (runs % 2 != 0) {
+               break;
               }
             }
           }
         }
-        // freeHit();  // TODO 
+        // freeHit();  // TODO
       }
 
       if (balls_in_over == 6) {
@@ -193,24 +172,19 @@ void *batting(void *param) {
         over_count++;
         over_end = 1; // flag to signify over has ended!
       }
-      curr_ball = (curr_ball + 1) % BALL_BUF_SIZE;
-      num_ball--;
-      number_balls++;
-      pthread_mutex_unlock(&pitch);
-      pthread_cond_signal(&c_bo);
-      if(over_end) {
+     if (over_end) {
         sem_post(&active_end);
-        break;  // swap sides of the pitch!
+        break; // swap sides of the pitch!
       }
-    } 
-    if (notOut==0) {
+    }
+    if (notOut == 0) {
       break;
     }
-    if(!over_end) sem_post(&active_end); // for odd runs side change!
+    if (!over_end)
+      sem_post(&active_end); // for odd runs side change!
   }
-  if (!got_out) {                  // post crease only if not posted above!
-    fifo_sem_post(&crease);       
+  if (!got_out) { // post crease only if not posted above!
+    fifo_sem_post(&crease);
   }
   return NULL;
 }
-

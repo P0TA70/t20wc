@@ -3,39 +3,41 @@
 #include "fifo_sem.h"
 #include <stdlib.h>
 
-// globals h externs
+//All common globs:
+pthread_t bowlers[20];
+BowlingScore bowler_stats[20];
+
+//Common between bowler and batter:
+BallOutcome balls[BALL_BUF_SIZE];
+
+int new_ball, curr_ball, num_ball;
+pthread_mutex_t pitch;
+pthread_cond_t c_ba, c_bo;
+
+//Common between batter and fielder:
 WicketType wicket_type;
-
-int new_batsman;
-pthread_mutex_t nb_mutex;
-
-fifo_sem crease;
-sem_t active_end, passive_end;
-
-int balls_in_over = 0;
-int over_count = 0;
-
 int ball_in_air;
 pthread_cond_t BALL_HIT;
 pthread_mutex_t fielder_mutex;
 pthread_cond_t fielder_done;
 pthread_mutex_t fielder_done_mutex;
 
-// score for a team
+//FIELDING globs:
+int match_over = 0;//used in umpire // im adding this so that the fielder threads can exit after the innings is over! issa global var!
+
+//BATTING globs:
+int new_batsman; //used in umpire
+pthread_mutex_t nb_mutex;
+
+fifo_sem crease;
+sem_t active_end, passive_end;
+
 int score = 0, wickets = 0;
 
-// order of bowlers
-pthread_t bowlers[20];
-BowlingScore bowler_stats[20];
+int balls_in_over = 0;
+int over_count = 0;
 
-BallOutcome balls[BALL_BUF_SIZE];
-
-int new_ball, curr_ball, num_ball;
-pthread_mutex_t pitch;
-pthread_cond_t c_ba, c_bo;
 int number_balls = 0;
-
-int match_over = 0; // im adding this so that the fielder threads can exit after the innings is over! issa global var!
 
 void *bowling(void *param);
 void *fielding(void *param);
