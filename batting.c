@@ -2,6 +2,10 @@
 #include <stdlib.h>
 
 void *batting(void *param) {
+  Player* player = (Player*) param;
+  int boundary_p = player->pdf.boundary;
+  int out_p = player->pdf.out;
+  
   fifo_sem_wait(&crease);
 
   int got_out =
@@ -49,7 +53,7 @@ void *batting(void *param) {
       if (ball == LEGAL_BALL) {
         balls_in_over++;
         // fair ball
-        notOut = rand() % 15;
+        notOut = (rand() % 10000 > out_p) ? 1 : 0;
         if (notOut == 0) {
           WicketType typeOfWicket = rand() % 7;
           // TODO: add more cases here
@@ -90,8 +94,8 @@ void *batting(void *param) {
           }
           pthread_exit(NULL);
         } else {
-          int boundary = rand() % 9;
-          if (boundary < 2) {
+          int boundary = (rand() % 9999 + 1 < boundary) ? 1 : 0;
+          if (boundary) {
             BoundaryType bt = rand() % 2;
             if (bt == FOUR) {
               score += 4;
@@ -112,7 +116,7 @@ void *batting(void *param) {
         int not_overthrow = rand() % 10;
         if (!not_overthrow) {
           // overthrow case here
-          int notRunOut = rand() % 4;
+          int notRunOut = (rand() % 10000 > out_p) ? 1 : 0;
           if (notRunOut == 0) {
             int runs = rand() % 4;
             score += runs;

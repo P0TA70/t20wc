@@ -9,7 +9,7 @@
 
 #define BALL_BUF_SIZE 42 //6*7
 
-extern pthread_t bowlers[20]; // Order of Bowlers 
+extern int bowlers[20]; // Order of Bowlers 
 extern BowlingScore bowler_stats[20]; //same order as above
 
 

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 //All common globs:
-pthread_t bowlers[20];
+int bowlers[20];
 BowlingScore bowler_stats[20];
 
 //Common between bowler and batter:
@@ -62,34 +62,40 @@ void umpire(Team *ba, Team *bo) {
   match_over = 0;           // incase umpire is called for 2nd innings!
   pthread_mutex_init(&nb_mutex,NULL);
 
+  //populate bowler order in ids here
+  // dummy
+  for (int i=0;i<20;i++) {
+    bowlers[i]=i%10;
+  }
+
   if (pthread_create(&bowler, NULL, bowling, (void *)bo)) {
     printf("Bowler thread couldnt be created");
     exit(1);
   }
 
   for (int i = 0; i < 11; i++) {
-    if (pthread_create(&((*ba).players[i].id), NULL, batting, NULL)) {
+    if (pthread_create(&((*ba).players[i].tid), NULL, batting, (void*)(&ba->players[i]))) {
       printf("Batter thread couldnt be created%d", i);
       exit(1);
     }
   }
 
   for (int i = 0; i < 11; i++) {
-    if (pthread_create(&(*bo).players[i].id, NULL, fielding, NULL)) {
+    if (pthread_create(&(*bo).players[i].tid, NULL, fielding, NULL)) {
       printf("Fielder thread couldnt be created%d", i);
       exit(1);
     }
   }
 
   for (int i = 0; i < 11; i++) {
-    pthread_join(ba->players[i].id, NULL);
+    pthread_join(ba->players[i].tid, NULL);
   }
 
   match_over = 1;                    // end of innings signal!
   pthread_cond_broadcast(&BALL_HIT); // DEATH TO ALL FIELDERS!
 
   for (int i = 0; i < 11; i++) {
-    pthread_join(bo->players[i].id, NULL);
+    pthread_join(bo->players[i].tid, NULL);
   }
   pthread_join(bowler, NULL);
 
@@ -98,22 +104,4 @@ void umpire(Team *ba, Team *bo) {
   pthread_cond_destroy(&c_ba);
   sem_destroy(&active_end);
   sem_destroy(&passive_end);
-}
-
-Team *construct_team(int data /*dummy, team bool for now*/) {
-  // pretend some  probability stuff assigns proper stats
-  Team *team = malloc(sizeof(Team));
-  team->team_score = 0;
-  for (int i = 0; i < 11; i++) {
-    team->players[i].team = 0;
-    team->players[i].death_over_specialist = i % 2;
-    team->players[i].bo_score.balls_delivered = 0;
-    team->players[i].bo_score.runs_given = 0;
-    team->players[i].bo_score.wickets_taken = 0;
-    team->players[i].ba_score.runs_taken = 0;
-    team->players[i].ba_score.balls_received = 0;
-    team->players[i].ba_score.fours = 0;
-    team->players[i].ba_score.sixes = 0;
-  }
-  return team;
 }

@@ -1,13 +1,18 @@
 #include "globals.h"
+#include "structs.h"
 #include <stdlib.h>
 
 void *bowling(void *param) {
   Team *team = (Team *)param;
 
   for (int over = 0; over < 20; over++) {
+    //assume some stats are updated here based on bowlers[over]
+    int legal = team->players[bowlers[over]].pdf.legal;
+    int wide = team->players[bowlers[over]].pdf.wide;
+
     for (int i = 0; i < 6; i++) {
-      int typeOfBall = rand() % 3;
-      BallOutcome ball = typeOfBall;
+      int typeOfBall = (rand() % 9999)+1;
+      BallOutcome ball = (typeOfBall > legal + wide) ? NO_BALL : (typeOfBall > legal) ? WIDE : LEGAL_BALL;
       if (ball == NO_BALL || ball == WIDE)
         i--; // TODO:TUX IN DANGER
       pthread_mutex_lock(&pitch);
