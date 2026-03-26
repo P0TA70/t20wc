@@ -46,5 +46,9 @@ extern pthread_mutex_t fielder_done_mutex;
 // D BUGGER added flaag so fielders may die!
 extern int match_over;
 
+// Deadlocker vars in runout
+extern pthread_mutex_t runout_mutex;
+extern int runout_occuring;
+
 
 #endif

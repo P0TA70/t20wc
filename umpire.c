@@ -43,6 +43,8 @@ void *bowling(void *param);
 void *fielding(void *param);
 void *batting(void *param);
 
+void *deadlock(void *param);
+
 void umpire(Team *ba, Team *bo) {
   fifo_sem_init(&crease, 2);
   sem_init(&active_end, 0, 1);
@@ -51,6 +53,8 @@ void umpire(Team *ba, Team *bo) {
   pthread_cond_init(&c_ba, NULL);
   pthread_cond_init(&c_bo, NULL);
   pthread_t bowler;
+
+  pthread_t detector; // deadlock detector thread
 
   pthread_cond_init(&BALL_HIT, NULL);
   pthread_mutex_init(&fielder_mutex, NULL);
@@ -67,9 +71,14 @@ void umpire(Team *ba, Team *bo) {
   for (int i=0;i<20;i++) {
     bowlers[i]=i%10;
   }
-
+  
   if (pthread_create(&bowler, NULL, bowling, (void *)bo)) {
     printf("Bowler thread couldnt be created");
+    exit(1);
+  }
+  
+  if (pthread_create(&detector, NULL, deadlock, NULL)) {
+    printf("Detector thread couldnt be created");
     exit(1);
   }
 
@@ -98,6 +107,7 @@ void umpire(Team *ba, Team *bo) {
     pthread_join(bo->players[i].tid, NULL);
   }
   pthread_join(bowler, NULL);
+  pthread_join(detector, NULL);
 
   pthread_mutex_destroy(&pitch);
   pthread_cond_destroy(&c_bo);

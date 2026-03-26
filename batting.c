@@ -1,11 +1,13 @@
 #include "globals.h"
 #include <stdlib.h>
 
+int runout_occuring = 0; // deadlocker
+pthread_mutex_t runout_mutex; 
+
 void *batting(void *param) {
   Player* player = (Player*) param;
   int boundary_p = player->pdf.boundary;
   int out_p = player->pdf.out;
-  
   fifo_sem_wait(&crease);
 
   int got_out =
@@ -76,6 +78,25 @@ void *batting(void *param) {
               pthread_cond_wait(&fielder_done, &fielder_done_mutex);
             }
             pthread_mutex_unlock(&fielder_done_mutex);
+
+
+            if(typeOfWicket==RUNOUT)
+            {
+              bowler_stats[over_count].balls_delivered++;
+              
+              pthread_mutex_lock(&runout_mutex);
+              runout_occuring = 1;
+              pthread_mutex_unlock(&runout_mutex);
+
+              printf("\nThis guy is Run out NOW , Oh detector please help\n");
+              // D3ADLOCK3D
+              sem_wait(&passive_end); // condition for RUN OUT
+
+              got_out =
+                    1; 
+              pthread_exit(NULL);
+
+            }
           } 
 
           bowler_stats[over_count].balls_delivered++;
