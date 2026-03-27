@@ -17,9 +17,9 @@ int main() {
 
   int coin = rand() % 2;
   if (coin) {
-    umpire(a, b);
+    umpire(a, b, 0);
   } else {
-    umpire(b, a);
+    umpire(b, a, 0);
   }
 
   return 0;

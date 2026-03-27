@@ -45,7 +45,7 @@ void *batting(void *param);
 
 void *deadlock(void *param);
 
-void umpire(Team *ba, Team *bo) {
+void umpire(Team *ba, Team *bo, int sched) {
   fifo_sem_init(&crease, 2);
   sem_init(&active_end, 0, 1);
   sem_init(&passive_end, 0, 1);
@@ -68,8 +68,40 @@ void umpire(Team *ba, Team *bo) {
 
   //populate bowler order in ids here
   // dummy
-  for (int i=0;i<20;i++) {
-    bowlers[i]=i%10;
+  int bowler_rankings[11];
+  double bowler_perfs[11];
+  int specialists[5] = {-1,-1,-1,-1,-1};
+  int index=0;
+  
+  for (int i=0;i<11;i++) {
+    PDF *pdf = &bo->players[i].pdf;
+    
+    bowler_rankings[i]=i; //FOR NOW RANDOM
+    bowler_perfs[i]=((double)rand()) / RAND_MAX;
+    if (pdf->death_over_specialist==1 && index<5) {
+      specialists[index]=i;
+      index++;
+    }
+  }
+  //sort
+  for (int i = 0;i<11; i++) {
+    for (int j=i;j>=0 && (bowler_perfs[j-1] > bowler_perfs[j]);j--) {
+      double temp = bowler_perfs[j-1];
+      bowler_perfs[j-1]=bowler_perfs[j];
+      bowler_perfs[j]=temp;
+      int t = bowler_rankings[j-1];
+      bowler_rankings[j-1]=bowler_rankings[j];
+      bowler_rankings[j]=t;
+    }
+  }
+  for (int i=0;i<15;i++) {
+    bowlers[i]=bowler_rankings[i%11];
+  }
+  for (int i=15;i<15+index;i++) {
+    bowlers[i]=specialists[i-15];
+  }
+  for (int i=15+index; i<20;i++) {
+    bowlers[i]=bowler_rankings[i%11];
   }
   
   if (pthread_create(&bowler, NULL, bowling, (void *)bo)) {
@@ -82,8 +114,38 @@ void umpire(Team *ba, Team *bo) {
     exit(1);
   }
 
+  //populate batter order
+  int batter_order[11];
+  double batter_perfs[11];
+
+  for (int i=0;i<11;i++) {
+    PDF* pdf = &ba->players[i].pdf;
+    batter_order[i]=i;//random FOR NOW
+    batter_perfs[i]=(double)pdf->boundary/10000 +(double)rand()/RAND_MAX; 
+  }
+  for (int i = 0;i<11; i++) {
+    for (int j=i;j>=0 && (batter_perfs[j-1] > batter_perfs[j]);j--) {
+      double temp = batter_perfs[j-1];
+      batter_perfs[j-1]=batter_perfs[j];
+      batter_perfs[j]=temp;
+      int t = batter_order[j-1];
+      batter_order[j-1]=batter_order[j];
+      batter_order[j]=t;
+    }
+  }
+  if (sched==0) {
+    for (int i=0;i<5;i++) {
+      double temp = batter_perfs[i];
+      batter_perfs[i]=batter_perfs[10-i];
+      batter_perfs[10-i]=temp;
+      int t = batter_order[i];
+      batter_order[i]=batter_order[10-i];
+      batter_order[10-i]=t;
+    }
+  }
+
   for (int i = 0; i < 11; i++) {
-    if (pthread_create(&((*ba).players[i].tid), NULL, batting, (void*)(&ba->players[i]))) {
+    if (pthread_create(&((*ba).players[batter_order[i]].tid), NULL, batting, (void*)(&ba->players[i]))) {
       printf("Batter thread couldnt be created%d", i);
       exit(1);
     }

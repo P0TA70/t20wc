@@ -2,10 +2,10 @@
 #include <stdlib.h>
 
 int runout_occuring = 0; // deadlocker
-pthread_mutex_t runout_mutex; 
+pthread_mutex_t runout_mutex;
 
 void *batting(void *param) {
-  Player* player = (Player*) param;
+  Player *player = (Player *)param;
   int boundary_p = player->pdf.boundary;
   int out_p = player->pdf.out;
   fifo_sem_wait(&crease);
@@ -14,7 +14,7 @@ void *batting(void *param) {
       0; // adding ts cuz when previously a batsman got out, crease was being
          // posted twice extra post was allowing 3rd batsman to come!
 
-  while (1) { //this loop is so that the 2 current batsmen rotate
+  while (1) { // this loop is so that the 2 current batsmen rotate
     pthread_mutex_lock(&nb_mutex);
     if (!new_batsman) {
       pthread_mutex_unlock(&nb_mutex);
@@ -30,7 +30,7 @@ void *batting(void *param) {
     int notOut =
         1; // wide and no ball case was leaving ts uninitialized, so i added it!
     int over_end = 0; // to check if the current over has ended!
-    while (1) { //this loop is for the 1 active batsman
+    while (1) {       // this loop is for the 1 active batsman
       pthread_mutex_lock(&pitch);
       if (num_ball < 0) {
         printf("crash");
@@ -79,11 +79,9 @@ void *batting(void *param) {
             }
             pthread_mutex_unlock(&fielder_done_mutex);
 
-
-            if(typeOfWicket==RUNOUT)
-            {
+            if (typeOfWicket == RUNOUT) {
               bowler_stats[over_count].balls_delivered++;
-              
+
               pthread_mutex_lock(&runout_mutex);
               runout_occuring = 1;
               pthread_mutex_unlock(&runout_mutex);
@@ -92,12 +90,10 @@ void *batting(void *param) {
               // D3ADLOCK3D
               sem_wait(&passive_end); // condition for RUN OUT
 
-              got_out =
-                    1; 
+              got_out = 1;
               pthread_exit(NULL);
-
             }
-          } 
+          }
 
           bowler_stats[over_count].balls_delivered++;
 
@@ -153,11 +149,24 @@ void *batting(void *param) {
               pthread_cond_wait(&fielder_done, &fielder_done_mutex);
             }
             pthread_mutex_unlock(&fielder_done_mutex);
+
+            bowler_stats[over_count].balls_delivered++;
+
+            pthread_mutex_lock(&runout_mutex);
+            runout_occuring = 1;
+            pthread_mutex_unlock(&runout_mutex);
+
+            printf("\nThis guy is Run out NOW , Oh detector please help\n");
+            // D3ADLOCK3D
+            sem_wait(&passive_end); // condition for RUN OUT
+
+            got_out = 1;
+            pthread_exit(NULL);
           } else {
             int runs = rand() % 5;
             score += runs;
             if (runs % 2 != 0) {
-             break;
+              break;
             }
           }
         }
@@ -184,7 +193,7 @@ void *batting(void *param) {
               int runs = rand() % 4;
               score += runs;
               if (runs % 2 != 0) {
-               break;
+                break;
               }
             }
           }
@@ -197,7 +206,7 @@ void *batting(void *param) {
         over_count++;
         over_end = 1; // flag to signify over has ended!
       }
-     if (over_end) {
+      if (over_end) {
         sem_post(&active_end);
         break; // swap sides of the pitch!
       }
