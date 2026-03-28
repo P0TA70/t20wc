@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 int main() {
-  srand(time(NULL));
+  srand(1);
 
   // some input data is converted to 2 teams
   Team *a = construct_team(0);

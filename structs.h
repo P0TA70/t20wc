@@ -24,11 +24,13 @@ typedef enum BoundaryType {
   SIX,
 } BoundaryType;
 
-/*typedef struct StrokeOutcome { //TODO: USE THIS
+typedef struct StrokeOutcome {
+  int wicket_bool;
   WicketType wicket_type;
-  int runs;
+  int boundary_bool;
   BoundaryType boundary_type;
-} StrokeOutcome;*/
+  int runs;
+} StrokeOutcome;
 
 typedef struct BowlingScore
 {

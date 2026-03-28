@@ -43,12 +43,6 @@ extern pthread_cond_t fielder_done;
 extern pthread_mutex_t fielder_done_mutex;
 // we need fielder done mutex and fielder mutex seperately cause TRUST!
 // for when a new batsman enters (double while)
-// D BUGGER added flaag so fielders may die!
-extern int match_over;
 
-// Deadlocker vars in runout
-extern pthread_mutex_t runout_mutex;
-extern int runout_occuring;
-
-
+extern int innings_ended;
 #endif
