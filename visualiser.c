@@ -4,7 +4,6 @@
 #include <string.h>
 
 void ganttChart(int* output, int size,Team* ba) {
-    // Build command: python gantt_chart.py 0 1 2 3 ...
     char command[2048] = "python3 visualiser.py";
     
     // Append each array element to the command

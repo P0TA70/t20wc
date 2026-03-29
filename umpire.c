@@ -27,7 +27,6 @@ pthread_mutex_t fielder_mutex;
 pthread_cond_t fielder_done;
 pthread_mutex_t fielder_done_mutex;
 
-// BATTING globs:
 int new_batsman; // used in umpire
 pthread_mutex_t nb_mutex;
 
@@ -74,8 +73,6 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   new_batsman = 0;
   pthread_mutex_init(&nb_mutex, NULL);
 
-  // populate bowler order in ids here
-  //  dummy
   int bowler_rankings[11];
   double bowler_perfs[11];
   int specialists[5] = {-1, -1, -1, -1, -1};
@@ -84,7 +81,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   for (int i = 0; i < 11; i++) {
     PDF *pdf = &bo->players[i].pdf;
 
-    bowler_rankings[i] = i; // FOR NOW RANDOM
+    bowler_rankings[i] = i; 
     bowler_perfs[i] = ((double)rand()) / RAND_MAX;
     if (pdf->death_over_specialist == 1 && index < 5) {
       specialists[index] = i;
@@ -193,7 +190,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   innings_ended = 1;
   pthread_mutex_unlock(&pitch);
   pthread_mutex_unlock(&fielder_mutex);
-  pthread_cond_broadcast(&BALL_HIT); // DEATH TO ALL FIELDERS!
+  pthread_cond_broadcast(&BALL_HIT); 
   for (int i = 0; i < 11; i++) {
     pthread_join(bo->players[i].tid, NULL);
   }

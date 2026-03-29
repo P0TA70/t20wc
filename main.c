@@ -7,7 +7,6 @@
 int main() {
   srand(time(NULL));
 
-  // some input data is converted to 2 teams
   Team *a = construct_team(0);
   Team *b = construct_team(1);
 
@@ -72,8 +71,7 @@ int main() {
   return 0;
 }
 
-Team *construct_team(int data /*dummy, team bool for now*/) {
-  // pretend some  probability stuff assigns proper stats
+Team *construct_team(int data ) {
   Team *team = malloc(sizeof(Team));
   team->team_score = 0;
 

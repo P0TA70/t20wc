@@ -4,7 +4,6 @@ import matplotlib.patches as patches
 from datetime import datetime
 
 def gantt_chart_visual(player_names):
-    """Create a professional Gantt chart visualization with player names"""
     
     size = len(player_names)
     
@@ -24,7 +23,6 @@ def gantt_chart_visual(player_names):
     
     fig, ax = plt.subplots(figsize=(18, max(7, num_players * 0.6)))
     
-    # Find continuous blocks
     process_times = {i: [] for i in range(num_players)}
     current_player = player_names[0]
     current_id = player_to_id[current_player]
@@ -39,7 +37,6 @@ def gantt_chart_visual(player_names):
     
     process_times[current_id].append((start_time, size - start_time))
     
-    # Draw rectangles
     for player_id in range(num_players):
         for start, duration in process_times[player_id]:
             color = colors[player_id % len(colors)]
@@ -60,17 +57,13 @@ def gantt_chart_visual(player_names):
     ax.set_yticks(range(num_players))
     ax.set_yticklabels(unique_players)
     
-    # SET X-AXIS TICKS TO INTERVALS OF 5
     ax.set_xticks(range(0, size + 1, 5))
     
-    # ROTATE X-AXIS LABELS
     ax.tick_params(axis='x', rotation=45, labelsize=10)
     
-    # Fine grid for every unit, but lighter
     ax.grid(axis='x', alpha=0.2, linestyle=':', linewidth=0.5)
     ax.set_axisbelow(True)
     
-    # Create unique filename with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f'gantt_chart_{timestamp}.png'
     

@@ -41,8 +41,6 @@ extern pthread_cond_t BALL_HIT;
 extern pthread_mutex_t fielder_mutex;
 extern pthread_cond_t fielder_done;
 extern pthread_mutex_t fielder_done_mutex;
-// we need fielder done mutex and fielder mutex seperately cause TRUST!
-// for when a new batsman enters (double while)
 
 // Deadlock
 extern int deadlock_runout;

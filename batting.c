@@ -59,7 +59,6 @@ void *batting(void *param) {
       pthread_cond_signal(&c_bo);
       // now the consumer has taken the resource (ball)
 
-      // randomising values
       StrokeOutcome so;
       so.wicket_bool = ((rand() % 10000 + 1) < pdf->out);
       so.wicket_type = rand() % 5;
@@ -154,7 +153,7 @@ void *batting(void *param) {
         new_over_bool = 1;
       }
 
-      // the kill yourself block
+      // the exit block
 
       if (so.wicket_bool == 0 && so.runs % 2 == 1) {
 
@@ -179,8 +178,7 @@ void *batting(void *param) {
           pthread_mutex_lock(&deadlock_runout_mutex);
           deadlock_runout = 1;
           pthread_mutex_unlock(&deadlock_runout_mutex);
-          sem_wait(&passive_end);// Is the other one definitely waiting on active ??
-
+          sem_wait(&passive_end);
 
         }
 
