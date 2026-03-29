@@ -59,7 +59,6 @@ void *batting(void *param) {
       pthread_cond_signal(&c_bo);
       // now the consumer has taken the resource (ball)
 
-      // randomising values
       StrokeOutcome so;
       so.wicket_bool = ((rand() % 10000 + 1) < pdf->out);
       so.wicket_type = rand() % 5;
@@ -154,7 +153,7 @@ void *batting(void *param) {
         new_over_bool = 1;
       }
 
-      // the kill yourself block
+      // the exit block
 
       if (so.wicket_bool == 0 && so.runs % 2 == 1) {
 
@@ -167,7 +166,23 @@ void *batting(void *param) {
         sem_post(&active_end);
         break;
       } else if (so.wicket_bool == 1 && so.runs % 2 == 0) {
-        pthread_mutex_lock(&nb_mutex);
+        
+
+        if(so.wicket_type==RUNOUT)
+        {
+          int passive;
+          sem_getvalue(&passive_end, &passive);
+          while (crease.value != 0 || passive != 0) {
+            sem_getvalue(&passive_end, &passive);
+          };
+          pthread_mutex_lock(&deadlock_runout_mutex);
+          deadlock_runout = 1;
+          pthread_mutex_unlock(&deadlock_runout_mutex);
+          sem_wait(&passive_end);
+
+        }
+
+pthread_mutex_lock(&nb_mutex);
         new_batsman = 1;
         pthread_mutex_unlock(&nb_mutex);
 
@@ -187,6 +202,21 @@ void *batting(void *param) {
         };
 
         wickets++;
+
+        if(so.wicket_type == RUNOUT) {
+              printf("I entered deadlocker ");
+              pthread_mutex_lock(&deadlock_runout_mutex);
+              deadlock_runout = 1;
+              pthread_mutex_unlock(&deadlock_runout_mutex);
+
+              printf("RUNOUT - Both tried for Passive End ");
+              while (crease.value != 0 || passive != 0) {
+                sem_getvalue(&passive_end, &passive);
+              };
+              sem_wait(&passive_end);
+              
+        }
+
         sem_post(&active_end);
         fifo_sem_post(&crease);
         pthread_exit((void *)(intptr_t)(return_value));

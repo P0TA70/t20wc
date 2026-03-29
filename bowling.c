@@ -6,7 +6,6 @@ void *bowling(void *param) {
   Team *team = (Team *)param;
 
   for (int over = 0; over < 20; over++) {
-    //assume some stats are updated here based on bowlers[over]
     int legal = team->players[bowlers[over]].pdf.legal;
     int wide = team->players[bowlers[over]].pdf.wide;
 

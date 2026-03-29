@@ -27,7 +27,6 @@ pthread_mutex_t fielder_mutex;
 pthread_cond_t fielder_done;
 pthread_mutex_t fielder_done_mutex;
 
-// BATTING globs:
 int new_batsman; // used in umpire
 pthread_mutex_t nb_mutex;
 
@@ -43,14 +42,18 @@ int number_balls;
 
 int innings_ended;
 
+int deadlock_runout;
+pthread_mutex_t deadlock_runout_mutex;
+
 int old;
 
 void *bowling(void *param);
 void *fielding(void *param);
 void *batting(void *param);
+void *deadlock(void *param);
 
 Results umpire(Team *ba, Team *bo, int sched, int old_score) {
-  new_ball=0, curr_ball=0, num_ball=0, score=0, wickets=0, balls_in_over=0, over_count=0, number_balls=0, innings_ended=0;
+  new_ball=0, curr_ball=0, num_ball=0, score=0, wickets=0, balls_in_over=0, over_count=0, number_balls=0, innings_ended=0, deadlock_runout=0;
   
   old = old_score;
   fifo_sem_init(&crease, 2);
@@ -70,8 +73,6 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   new_batsman = 0;
   pthread_mutex_init(&nb_mutex, NULL);
 
-  // populate bowler order in ids here
-  //  dummy
   int bowler_rankings[11];
   double bowler_perfs[11];
   int specialists[5] = {-1, -1, -1, -1, -1};
@@ -80,7 +81,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   for (int i = 0; i < 11; i++) {
     PDF *pdf = &bo->players[i].pdf;
 
-    bowler_rankings[i] = i; // FOR NOW RANDOM
+    bowler_rankings[i] = i; 
     bowler_perfs[i] = ((double)rand()) / RAND_MAX;
     if (pdf->death_over_specialist == 1 && index < 5) {
       specialists[index] = i;
@@ -115,7 +116,12 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
     printf("Bowler thread couldnt be created");
     exit(1);
   }
-
+  pthread_t deadlock_thread;
+  if (pthread_create(&deadlock_thread, NULL, deadlock, NULL)) {
+    printf("Deadlock thread couldnt be created");
+    exit(1);
+  }
+  
   // populate batter order
   int batter_order[11];
   double batter_perfs[11];
@@ -167,6 +173,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
 
   void* batter_wait_times[11];  
 
+  printf("\ngame\n");
   for (int i = 0; i < 11; i++) {
     pthread_join(ba->players[batter_order[i]].tid, &batter_wait_times[i]);
     return_value.wait_balls[i] = (intptr_t)batter_wait_times[i];
@@ -178,18 +185,18 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   ganttChart(batter_chart,number_balls,ba);
 
   pthread_mutex_lock(&fielder_mutex);
+  printf("\ngame\n");
   pthread_mutex_lock(&pitch);
   innings_ended = 1;
   pthread_mutex_unlock(&pitch);
   pthread_mutex_unlock(&fielder_mutex);
-  pthread_cond_broadcast(&BALL_HIT); // DEATH TO ALL FIELDERS!
+  pthread_cond_broadcast(&BALL_HIT); 
   for (int i = 0; i < 11; i++) {
     pthread_join(bo->players[i].tid, NULL);
   }
-
   pthread_cond_signal(&c_bo);
   pthread_join(bowler, NULL);
-
+  pthread_join(deadlock_thread,NULL);
   pthread_mutex_destroy(&pitch);
   pthread_cond_destroy(&c_bo);
   pthread_cond_destroy(&c_ba);

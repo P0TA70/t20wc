@@ -2,12 +2,10 @@
 
 void *fielding(void *param) {
   Player *player = (Player *)param;
-  while (!innings_ended) { // to allow fielders to die after innings done!
+  while (!innings_ended) { 
     pthread_mutex_lock(&fielder_mutex);
 
-    while (!ball_in_air && !innings_ended) { // putting this just in case but what if somehow
-                          // match_over = 1 when this signal is broadcase?
-                          // safety measure!
+    while (!ball_in_air && !innings_ended) { 
       pthread_cond_wait(&BALL_HIT, &fielder_mutex);
     }
 
@@ -17,10 +15,8 @@ void *fielding(void *param) {
     }
     
     if (wicket_type == CAUGHT) {
-      // stats here
       printf("Caught by %s midair", player->name);
     } else if (wicket_type == RUNOUT) {
-      // stats here
       printf("Caught by %s when the batsman was taking runs!", player->name);
     }
     // do work, then signal
