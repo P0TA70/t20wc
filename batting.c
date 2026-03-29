@@ -167,24 +167,26 @@ void *batting(void *param) {
         sem_post(&active_end);
         break;
       } else if (so.wicket_bool == 1 && so.runs % 2 == 0) {
-        pthread_mutex_lock(&nb_mutex);
-        new_batsman = 1;
-        pthread_mutex_unlock(&nb_mutex);
+        
 
         if(so.wicket_type==RUNOUT)
         {
-          pthread_mutex_lock(&deadlock_runout_mutex);
-          deadlock_runout = 1;
-          pthread_mutex_unlock(&deadlock_runout_mutex);
           int passive;
           sem_getvalue(&passive_end, &passive);
           while (crease.value != 0 || passive != 0) {
-                sem_getvalue(&passive_end, &passive);
+            sem_getvalue(&passive_end, &passive);
           };
+          pthread_mutex_lock(&deadlock_runout_mutex);
+          deadlock_runout = 1;
+          pthread_mutex_unlock(&deadlock_runout_mutex);
           sem_wait(&passive_end);// Is the other one definitely waiting on active ??
 
 
         }
+
+pthread_mutex_lock(&nb_mutex);
+        new_batsman = 1;
+        pthread_mutex_unlock(&nb_mutex);
 
         wickets++;
 

@@ -176,6 +176,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
 
   void* batter_wait_times[11];  
 
+  printf("\ngame\n");
   for (int i = 0; i < 11; i++) {
     pthread_join(ba->players[batter_order[i]].tid, &batter_wait_times[i]);
     return_value.wait_balls[i] = (intptr_t)batter_wait_times[i];
@@ -187,6 +188,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   ganttChart(batter_chart,number_balls,ba);
 
   pthread_mutex_lock(&fielder_mutex);
+  printf("\ngame\n");
   pthread_mutex_lock(&pitch);
   innings_ended = 1;
   pthread_mutex_unlock(&pitch);
@@ -195,7 +197,6 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   for (int i = 0; i < 11; i++) {
     pthread_join(bo->players[i].tid, NULL);
   }
-
   pthread_cond_signal(&c_bo);
   pthread_join(bowler, NULL);
   pthread_join(deadlock_thread,NULL);
