@@ -4,6 +4,9 @@
 #include "structs.h"
 #include <stdlib.h>
 
+//visualiser function
+void ganttChart(int* output,int size,Team* ba);
+
 // All common globs:
 int bowlers[20];
 char *bowler_names[20];
@@ -170,7 +173,9 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
     return_value.batter_names[i]=ba->players[batter_order[i]].name;
   }
   return_value.score = score;
-  
+
+  //visualiser function 
+  ganttChart(batter_chart,number_balls,ba);
 
   pthread_mutex_lock(&fielder_mutex);
   pthread_mutex_lock(&pitch);
