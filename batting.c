@@ -31,7 +31,7 @@ void *batting(void *param) {
         return_value = number_balls;
         balls_received = 1;
       }
-      if (over_count == 20 || wickets == 10) {
+      if (over_count == 20 || wickets == 10 || score > old) {
         sem_post(&active_end);
         fifo_sem_post(&crease);
         pthread_exit((void *)(intptr_t)(return_value));
@@ -118,7 +118,9 @@ void *batting(void *param) {
 
       if ((so.wicket_bool && so.wicket_type == RUNOUT) ||
           (so.wicket_bool == 0 && so.boundary_bool == 0))
-        printf("Ran %d runs", so.runs);
+        printf("Ran %d runs  ", so.runs);
+
+      printf("(%d/%d)  ", score, wickets+so.wicket_bool);
 
       fflush(stdout);
 

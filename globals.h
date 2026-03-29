@@ -44,4 +44,5 @@ extern pthread_mutex_t fielder_done_mutex;
 // for when a new batsman enters (double while)
 
 extern int innings_ended;
+extern int old;
 #endif

@@ -39,13 +39,16 @@ int number_balls;
 
 int innings_ended;
 
+int old;
+
 void *bowling(void *param);
 void *fielding(void *param);
 void *batting(void *param);
 
-Results umpire(Team *ba, Team *bo, int sched) {
+Results umpire(Team *ba, Team *bo, int sched, int old_score) {
   new_ball=0, curr_ball=0, num_ball=0, score=0, wickets=0, balls_in_over=0, over_count=0, number_balls=0, innings_ended=0;
   
+  old = old_score;
   fifo_sem_init(&crease, 2);
   sem_init(&active_end, 0, 1);
   sem_init(&passive_end, 0, 1);
