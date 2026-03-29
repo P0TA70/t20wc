@@ -47,6 +47,7 @@ typedef struct BatterResults {
 
 typedef struct Player
 {
+  int id;
   char* name;
   pthread_t tid;
   int team;

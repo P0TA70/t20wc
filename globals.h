@@ -11,6 +11,7 @@
 
 extern int bowlers[20]; // Order of Bowlers 
 extern char* bowler_names[20];
+extern int batter_chart[1024];
 
 
 extern BallOutcome balls[BALL_BUF_SIZE]; //shared buffer and its variables to access

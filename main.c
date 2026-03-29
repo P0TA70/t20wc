@@ -87,6 +87,7 @@ Team *construct_team(int data /*dummy, team bool for now*/) {
     Player *current = &team->players[i];
 
     current->team = data;
+    current->id=i;
 
     PDF *pdf = &current->pdf;
     current->name = malloc(48);

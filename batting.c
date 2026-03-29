@@ -124,6 +124,8 @@ void *batting(void *param) {
 
       fflush(stdout);
 
+      batter_chart[number_balls-1]=player->id;
+
       // the fielder chain block
       if (so.wicket_bool == 1 &&
           (so.wicket_type == RUNOUT || so.wicket_type == CAUGHT)) {

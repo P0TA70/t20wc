@@ -7,6 +7,7 @@
 // All common globs:
 int bowlers[20];
 char *bowler_names[20];
+int batter_chart[1024];
 
 // Common between bowler and batter:
 BallOutcome balls[BALL_BUF_SIZE];
