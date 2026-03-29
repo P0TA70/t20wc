@@ -40,14 +40,18 @@ int number_balls;
 
 int innings_ended;
 
+int deadlock_runout;
+pthread_mutex_t deadlock_runout_mutex;
+
 int old;
 
 void *bowling(void *param);
 void *fielding(void *param);
 void *batting(void *param);
+void *deadlock(void *param);
 
 Results umpire(Team *ba, Team *bo, int sched, int old_score) {
-  new_ball=0, curr_ball=0, num_ball=0, score=0, wickets=0, balls_in_over=0, over_count=0, number_balls=0, innings_ended=0;
+  new_ball=0, curr_ball=0, num_ball=0, score=0, wickets=0, balls_in_over=0, over_count=0, number_balls=0, innings_ended=0, deadlock_runout=0;
   
   old = old_score;
   fifo_sem_init(&crease, 2);
@@ -112,7 +116,12 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
     printf("Bowler thread couldnt be created");
     exit(1);
   }
-
+  pthread_t deadlock_thread;
+  if (pthread_create(&deadlock_thread, NULL, deadlock, NULL)) {
+    printf("Deadlock thread couldnt be created");
+    exit(1);
+  }
+  
   // populate batter order
   int batter_order[11];
   double batter_perfs[11];
@@ -184,7 +193,7 @@ Results umpire(Team *ba, Team *bo, int sched, int old_score) {
 
   pthread_cond_signal(&c_bo);
   pthread_join(bowler, NULL);
-
+  pthread_join(deadlock_thread,NULL);
   pthread_mutex_destroy(&pitch);
   pthread_cond_destroy(&c_bo);
   pthread_cond_destroy(&c_ba);

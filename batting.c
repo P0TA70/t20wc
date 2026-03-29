@@ -171,6 +171,21 @@ void *batting(void *param) {
         new_batsman = 1;
         pthread_mutex_unlock(&nb_mutex);
 
+        if(so.wicket_type==RUNOUT)
+        {
+          pthread_mutex_lock(&deadlock_runout_mutex);
+          deadlock_runout = 1;
+          pthread_mutex_unlock(&deadlock_runout_mutex);
+          int passive;
+          sem_getvalue(&passive_end, &passive);
+          while (crease.value != 0 || passive != 0) {
+                sem_getvalue(&passive_end, &passive);
+          };
+          sem_wait(&passive_end);// Is the other one definitely waiting on active ??
+
+
+        }
+
         wickets++;
 
         if (wickets == 10) {
@@ -187,6 +202,21 @@ void *batting(void *param) {
         };
 
         wickets++;
+
+        if(so.wicket_type == RUNOUT) {
+              printf("I entered deadlocker ");
+              pthread_mutex_lock(&deadlock_runout_mutex);
+              deadlock_runout = 1;
+              pthread_mutex_unlock(&deadlock_runout_mutex);
+
+              printf("RUNOUT - Both tried for Passive End ");
+              while (crease.value != 0 || passive != 0) {
+                sem_getvalue(&passive_end, &passive);
+              };
+              sem_wait(&passive_end);
+              
+        }
+
         sem_post(&active_end);
         fifo_sem_post(&crease);
         pthread_exit((void *)(intptr_t)(return_value));
