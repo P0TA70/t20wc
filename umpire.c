@@ -1,11 +1,12 @@
 #include "fifo_sem.h"
+#include <stdint.h>
 #include "globals.h"
 #include "structs.h"
 #include <stdlib.h>
 
 // All common globs:
 int bowlers[20];
-BowlingScore bowler_stats[20];
+char *bowler_names[20];
 
 // Common between bowler and batter:
 BallOutcome balls[BALL_BUF_SIZE];
@@ -29,20 +30,22 @@ pthread_mutex_t nb_mutex;
 fifo_sem crease;
 sem_t active_end, passive_end;
 
-int score = 0, wickets = 0;
+int score, wickets;
 
-int balls_in_over = 0;
-int over_count = 0;
+int balls_in_over;
+int over_count;
 
-int number_balls = 0;
+int number_balls;
 
-int innings_ended = 0;
+int innings_ended;
 
 void *bowling(void *param);
 void *fielding(void *param);
 void *batting(void *param);
 
-void umpire(Team *ba, Team *bo, int sched) {
+Results umpire(Team *ba, Team *bo, int sched) {
+  new_ball=0, curr_ball=0, num_ball=0, score=0, wickets=0, balls_in_over=0, over_count=0, number_balls=0, innings_ended=0;
+  
   fifo_sem_init(&crease, 2);
   sem_init(&active_end, 0, 1);
   sem_init(&passive_end, 0, 1);
@@ -90,12 +93,15 @@ void umpire(Team *ba, Team *bo, int sched) {
   }
   for (int i = 0; i < 15; i++) {
     bowlers[i] = bowler_rankings[i % 11];
+    bowler_names[i] = bo->players[bowlers[i]].name;
   }
   for (int i = 15; i < 15 + index; i++) {
     bowlers[i] = specialists[i - 15];
+    bowler_names[i] = bo->players[bowlers[i]].name;
   }
   for (int i = 15 + index; i < 20; i++) {
     bowlers[i] = bowler_rankings[i % 11];
+    bowler_names[i] = bo->players[bowlers[i]].name;
   }
 
   if (pthread_create(&bowler, NULL, bowling, (void *)bo)) {
@@ -109,8 +115,8 @@ void umpire(Team *ba, Team *bo, int sched) {
 
   for (int i = 0; i < 11; i++) {
     PDF *pdf = &ba->players[i].pdf;
-    batter_order[i] = i; // random FOR NOW
-    batter_perfs[i] = (double)pdf->boundary / 10000 + (double)rand() / RAND_MAX;
+    batter_order[i] = i; 
+    batter_perfs[i] = 10000-pdf->out;
   }
   for (int i = 0; i < 11; i++) {
     for (int j = i; j >= 0 && (batter_perfs[j - 1] > batter_perfs[j]); j--) {
@@ -123,6 +129,7 @@ void umpire(Team *ba, Team *bo, int sched) {
     }
   }
   if (sched == 0) {
+    //0 for fcfs, 1 for sjf
     for (int i = 0; i < 5; i++) {
       double temp = batter_perfs[i];
       batter_perfs[i] = batter_perfs[10 - i];
@@ -135,7 +142,7 @@ void umpire(Team *ba, Team *bo, int sched) {
 
   for (int i = 0; i < 11; i++) {
     if (pthread_create(&((*ba).players[batter_order[i]].tid), NULL, batting,
-                       (void *)(&ba->players[i]))) {
+                       (void *)(&ba->players[batter_order[i]]))) {
       printf("Batter thread couldnt be created%d", i);
       exit(1);
     }
@@ -149,9 +156,17 @@ void umpire(Team *ba, Team *bo, int sched) {
     }
   }
 
+  Results return_value;
+
+  void* batter_wait_times[11];  
+
   for (int i = 0; i < 11; i++) {
-    pthread_join(ba->players[i].tid, NULL);
+    pthread_join(ba->players[batter_order[i]].tid, &batter_wait_times[i]);
+    return_value.wait_balls[i] = (intptr_t)batter_wait_times[i];
+    return_value.batter_names[i]=ba->players[batter_order[i]].name;
   }
+  return_value.score = score;
+  
 
   pthread_mutex_lock(&fielder_mutex);
   pthread_mutex_lock(&pitch);
@@ -171,4 +186,6 @@ void umpire(Team *ba, Team *bo, int sched) {
   pthread_cond_destroy(&c_ba);
   sem_destroy(&active_end);
   sem_destroy(&passive_end);
+
+  return return_value;
 }

@@ -10,7 +10,7 @@
 #define BALL_BUF_SIZE 42 //6*7
 
 extern int bowlers[20]; // Order of Bowlers 
-extern BowlingScore bowler_stats[20]; //same order as above
+extern char* bowler_names[20];
 
 
 extern BallOutcome balls[BALL_BUF_SIZE]; //shared buffer and its variables to access
@@ -31,7 +31,6 @@ extern int wickets;
 
 extern int new_batsman;
 extern pthread_mutex_t nb_mutex;
-
 
 extern WicketType wicket_type;
 

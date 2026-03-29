@@ -32,32 +32,24 @@ typedef struct StrokeOutcome {
   int runs;
 } StrokeOutcome;
 
-typedef struct BowlingScore
-{
-  int balls_delivered;
-  int runs_given;
-  int wickets_taken; 
-} BowlingScore;
-typedef struct BattingScore 
-{
-  int balls_received;
-  int runs_taken;
-  int sixes, fours;
-} BattingScore;
-
 typedef struct Probabilities {
   int boundary, out;
   int wide, legal;
   //^^ in order of 10^-4
   int death_over_specialist; //bool
 } PDF;
+
+typedef struct BatterResults {
+  char* batter_names[11];
+  int wait_balls[11];
+  int score;
+} Results;
+
 typedef struct Player
 {
   char* name;
   pthread_t tid;
   int team;
-  BowlingScore bo_score;
-  BattingScore ba_score;
   PDF pdf;
 } Player;
 

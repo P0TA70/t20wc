@@ -4,24 +4,72 @@
 #include <stdlib.h>
 
 int main() {
-  srand(1);
+  srand(time(NULL));
 
   // some input data is converted to 2 teams
   Team *a = construct_team(0);
   Team *b = construct_team(1);
 
-  for (int i=0;i<11;i++) {
-    PDF* pdf = &a->players[i].pdf;
-    printf("My name is %s, %d %d %d %d %d\n", a->players[i].name, pdf->boundary, pdf->out, pdf->legal, pdf->wide, pdf->death_over_specialist);
+  printf("TEAM 1 PLAYERS\n");
+  for (int i = 0; i < 11; i++) {
+    PDF *pdf = &a->players[i].pdf;
+    printf("My name is %s, %d %d %d %d %d\n", a->players[i].name, pdf->boundary,
+           pdf->out, pdf->legal, pdf->wide, pdf->death_over_specialist);
+  }
+
+  printf("\n");
+
+  printf("TEAM 2 PLAYERS\n");
+  for (int i = 0; i < 11; i++) {
+    PDF *pdf = &b->players[i].pdf;
+    printf("My name is %s, %d %d %d %d %d\n", b->players[i].name, pdf->boundary,
+           pdf->out, pdf->legal, pdf->wide, pdf->death_over_specialist);
   }
 
   int coin = rand() % 2;
-  if (coin) {
-    umpire(a, b, 0);
+  Results first_innings_score, second_innings_score;
+  Results sjf_results;
+  printf("FCFS batter scheduling\n");
+  printf("\nFirst innings beginning with team %d\n", coin + 1);
+  if (!coin) {
+    first_innings_score = umpire(a, b, 0);
+    printf("\nSecond innings beginning with team 2\n");
+    second_innings_score = umpire(b, a, 0);
+
+    freopen("sjf.txt", "w", stdout);
+    sjf_results = umpire(a, b, 1);
+    freopen("/dev/tty", "w", stdout);
+
   } else {
-    umpire(b, a, 0);
+    first_innings_score = umpire(b, a, 0);
+    printf("\nSecond innings beginning with team 1\n");
+    second_innings_score = umpire(a, b, 0);
+
+    freopen("sjf.txt", "w", stdout);
+    sjf_results = umpire(b, a, 1);
+    freopen("/dev/tty", "w", stdout);
   }
 
+  printf("\n\nTeam %d played first and scores %d runs!\n", coin + 1,
+         first_innings_score.score);
+  printf("Team %d played second and scores %d runs!\n", 2 - coin,
+         second_innings_score.score);
+
+  printf("\nCheck sjf.txt for log describing if SJF was used for batting "
+         "scheduling, for the team that played first.\n");
+  printf("MIDDLE ORDER WAIT ANALYSIS\n");
+  printf("Middle order = players 4-7: %s %s %s %s\n", sjf_results.batter_names[4],
+         sjf_results.batter_names[5], sjf_results.batter_names[6],
+         sjf_results.batter_names[7]);
+  printf("%-12s  %10s  %10s\n", "Player", "FCFS wait time", "SJF wait time");
+
+  int average1=0;
+  int average2=0;
+  for (int i = 0; i < 4; i++) {
+    average1+=first_innings_score.wait_balls[3+i];
+    average2+=sjf_results.wait_balls[i+3];
+    printf("%-12d  %10d  %10d\n", i+4, first_innings_score.wait_balls[3+i], sjf_results.wait_balls[i+3]);
+  }
   return 0;
 }
 
@@ -37,22 +85,16 @@ Team *construct_team(int data /*dummy, team bool for now*/) {
   }
 
   for (int i = 0; i < 11; i++) {
-    Player* current = &team->players[i];
-    
+    Player *current = &team->players[i];
+
     current->team = data;
-    current->bo_score.balls_delivered = 0;
-    current->bo_score.runs_given = 0;
-    current->bo_score.wickets_taken = 0;
-    current->ba_score.runs_taken = 0;
-    current->ba_score.balls_received = 0;
-    current->ba_score.fours = 0;
-    current->ba_score.sixes = 0;
 
     PDF *pdf = &current->pdf;
     current->name = malloc(48);
     char buffer[1001];
     fgets(buffer, 1000, fp);
-    sscanf(buffer, "%48s %d %d %d %d %d", current->name, &pdf->boundary, &pdf->out, &pdf->legal, &pdf->wide, &pdf->death_over_specialist);
+    sscanf(buffer, "%48s %d %d %d %d %d", current->name, &pdf->boundary,
+           &pdf->out, &pdf->legal, &pdf->wide, &pdf->death_over_specialist);
   }
   return team;
 }

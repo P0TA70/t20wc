@@ -3,11 +3,16 @@
 #include "structs.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdint.h>
 #include <stdlib.h>
+
+int new_over_bool = 1;
 
 void *batting(void *param) {
   Player *player = (Player *)param;
   PDF *pdf = &player->pdf;
+  int balls_received = 0;
+  int return_value;
 
   fifo_sem_wait(&crease);
   while (1) {
@@ -22,12 +27,16 @@ void *batting(void *param) {
       pthread_mutex_unlock(&nb_mutex);
     }
     while (1) {
-      if (over_count == 20 || wickets==10) {
+      if (balls_received == 0) {
+        return_value = number_balls;
+        balls_received = 1;
+      }
+      if (over_count == 20 || wickets == 10) {
         sem_post(&active_end);
         fifo_sem_post(&crease);
-        pthread_exit(0);
+        pthread_exit((void *)(intptr_t)(return_value));
       }
-      
+
       // typical producer consumer
       pthread_mutex_lock(&pitch);
       if (num_ball < 0) {
@@ -85,6 +94,35 @@ void *batting(void *param) {
         score += so.runs;
       }
 
+      // printing block
+      if (new_over_bool) {
+        printf("\n Over %d - Bowler %s\n", over_count + 1,
+               bowler_names[over_count]);
+        fflush(stdout);
+        new_over_bool = 0;
+      }
+
+      printf("[Over %d.%d] %s    ", over_count + 1, balls_in_over,
+             player->name);
+      printf("%s  ", (ball == LEGAL_BALL) ? "Legal"
+                     : (ball == WIDE)     ? "Wide(+1 score!)"
+                                          : "Noball(+1 score!)");
+      if (so.wicket_bool)
+        printf("%s", (so.wicket_type == RUNOUT)   ? "RUNOUT!  "
+                     : (so.wicket_type == CAUGHT) ? "CAUGHT!  "
+                                                  : "OUT!  ");
+      else if (so.boundary_bool)
+        printf("%s", (so.boundary_type == FOUR) ? "FOUR!  " : "SIX!  ");
+      else
+        printf("Hit  ");
+
+      if ((so.wicket_bool && so.wicket_type == RUNOUT) ||
+          (so.wicket_bool == 0 && so.boundary_bool == 0))
+        printf("Ran %d runs", so.runs);
+
+      fflush(stdout);
+
+      // the fielder chain block
       if (so.wicket_bool == 1 &&
           (so.wicket_type == RUNOUT || so.wicket_type == CAUGHT)) {
         // tell fielder that  ball in air
@@ -101,23 +139,20 @@ void *batting(void *param) {
         }
         pthread_mutex_unlock(&fielder_done_mutex);
       }
-
-      // the over ender block
-      printf("%s %d %d reporting here hi ", player->name, over_count,
-             balls_in_over);
+      printf("\n");
       fflush(stdout);
+      // the over ender block
 
       if (balls_in_over == 6) {
         over_count++;
         balls_in_over = 0;
         so.runs = 1 - so.runs % 2;
+        new_over_bool = 1;
       }
 
       // the kill yourself block
-      
+
       if (so.wicket_bool == 0 && so.runs % 2 == 1) {
-        printf("here1\n");
-        fflush(stdout);
 
         int passive;
         sem_getvalue(&passive_end, &passive);
@@ -132,19 +167,15 @@ void *batting(void *param) {
         new_batsman = 1;
         pthread_mutex_unlock(&nb_mutex);
 
-        printf("here2\n");
-        fflush(stdout);
         wickets++;
 
-        if (wickets==10) {
+        if (wickets == 10) {
           sem_post(&active_end);
         }
-        
+
         fifo_sem_post(&crease);
-        pthread_exit(0);
+        pthread_exit((void *)(intptr_t)(return_value));
       } else if (so.wicket_bool == 1 && so.runs % 2 == 1) {
-        printf("here3\n");
-        fflush(stdout);
         int passive;
         sem_getvalue(&passive_end, &passive);
         while (crease.value != 0 || passive != 0) {
@@ -154,9 +185,8 @@ void *batting(void *param) {
         wickets++;
         sem_post(&active_end);
         fifo_sem_post(&crease);
-        pthread_exit(0);
+        pthread_exit((void *)(intptr_t)(return_value));
       }
-      printf("\n");
     }
   }
   return NULL;

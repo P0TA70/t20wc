@@ -18,10 +18,10 @@ void *fielding(void *param) {
     
     if (wicket_type == CAUGHT) {
       // stats here
-      printf("%s caught the ball midair!\n", player->name);
+      printf("Caught by %s midair", player->name);
     } else if (wicket_type == RUNOUT) {
       // stats here
-      printf("%s caught the ball when the batsman was taking runs!\n", player->name);
+      printf("Caught by %s when the batsman was taking runs!", player->name);
     }
     // do work, then signal
 
